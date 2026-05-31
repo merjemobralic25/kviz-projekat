@@ -5,7 +5,8 @@ WORKDIR /app
 
 # Instalacija paketa
 COPY package*.json ./
-RUN npm ci --silent
+# Umjesto npm ci, stavi obični npm install
+RUN npm install --silent
 
 # Kopiranje koda i kreiranje produkcijske verzije
 COPY . .
