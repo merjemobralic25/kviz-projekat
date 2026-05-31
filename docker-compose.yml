@@ -7,27 +7,40 @@ services:
       dockerfile: Dockerfile
     container_name: quizmaster-backend
     ports:
-      - "3001:3001"
+      - "${BACKEND_PORT:-3001}:3001"
     volumes:
-      - ./backend/db.json:/app/db.json
+      - db_data:/app/data
+    environment:
+      - NODE_ENV=production
+      - PORT=3001
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:3001/quizzes"]
       interval: 10s
       timeout: 5s
       retries: 3
+      start_period: 5s
 
   frontend:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - REACT_APP_API_URL=${REACT_APP_API_URL:-http://localhost:3001}
     container_name: quizmaster-frontend
     ports:
-      - "3000:80"
+      - "${FRONTEND_PORT:-3000}:80"
+    environment:
+      - NGINX_HOST=localhost
+      - NGINX_PORT=80
     depends_on:
       backend:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  db_data:
+    name: quizmaster-db-data
 
 networks:
   default:
