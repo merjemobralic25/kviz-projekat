@@ -133,4 +133,21 @@ Aplikacija će se automatski otvoriti na http://localhost:3000.Environment varij
 ├── .github/workflows/deploy.yml
 ├── scripts/health-check.sh
 └── README.md
+## 📸 Snimci ekrana radne aplikacije
+
+### 1. Landing stranica
+![Landing Stranica](screenshots/image.png)
+
+### 2. Prijava i Registracija
+![Prijava](screenshots/login.png)
+
+### 3. Admin panel
+![Admin Panel](screenshots/admin.png)
+
+### 4. Mobilni prikaz
+![Mobilni Prikaz](screenshots/mobilna_aplikacija.png)
+
+### 5. GCP Cloud Run konzola
+![GCP Konzola](screenshots/gcp.png)
+
 🔒 Zaštićene ruteRutaPravilo zaštite/admin/*Pristup dozvoljen isključivo korisnicima sa ulogom admin (PrivateRoute adminOnly)/login, /registerPristup dozvoljen samo neulogovanim posjetiocimaSve ostale ruteJavne rute za pregled sadržaja i igranje📸 Snimci ekranaPriloženi snimci ekrana nalaze se u folderu /docs/screenshots/:Prikaz ekranaNaziv fajlaPočetna stranica (Landing page)landing.pngForma za prijavu (Login)login.pngUpravljačka ploča (Admin panel)admin.pngResponzivni prikaz (Mobile menu)mobile.pngGCP Cloud Run konzolagcp.png🌐 Produkcijski URL-oviFrontend aplikacija: https://quizmaster-frontend-XXXX-ew.a.run.appBackend API server: https://quizmaster-backend-XXXX-ew.a.run.app⚙️ GCP Secrets (Potrebno za CI/CD pipeline)Za uspješan deployment preko GitHub Actions-a, u postavkama repozitorija potrebno je definisati sljedeće tajne ključeve:GCP_PROJECT_ID – Identifikator vašeg Google Cloud projekta.GCP_SA_KEY – Autentifikacijski JSON ključ za Service Account sa dozvolama Cloud Run Admin i Storage Admin.
