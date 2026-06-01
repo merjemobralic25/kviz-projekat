@@ -31,6 +31,14 @@
       "role": "guest",
       "createdAt": "2026-06-01T19:08:15.449Z",
       "id": "KntYNvm"
+    },
+    {
+      "name": "Merjem",
+      "email": "adnasalatovic5@gmail.com",
+      "password": "ŠestSedam",
+      "role": "guest",
+      "createdAt": "2026-06-01T19:43:16.808Z",
+      "id": "mkaA-Hx"
     }
   ],
   "quizzes": [
