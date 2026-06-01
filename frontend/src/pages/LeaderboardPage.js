@@ -1,122 +1,172 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 
 /**
- * Hook za fetch - jednostavno povlačenje podataka
+ * Dinamički API URL - ista logika kao AuthContext
+ */
+const getApiUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  if (window.location.hostname.includes('.github.dev')) {
+    if (window.location.origin.includes('-3000.')) {
+      return window.location.origin.replace('-3000.', '-3005.');
+    }
+    return window.location.origin.replace('//', '//') + ':3005';
+  }
+
+  return 'http://localhost:3005';
+};
+
+const API_URL = getApiUrl();
+console.log('🔌 API URL (Leaderboard):', API_URL);
+
+/**
+ * Custom hook za fetch - sa retry logikom
  */
 const useFetch = (endpoint) => {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     setLoading(true);
+    setError(null);
+
     try {
-      // Dinamički URL kao u AuthContext
-      const baseUrl = getApiUrl();
-      const response = await fetch(`${baseUrl}${endpoint}`, {
+      const response = await fetch(`${API_URL}${endpoint}`, {
         method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+        },
       });
 
       if (!response.ok) {
-        throw new Error(`Fetch greška: ${response.status}`);
+        throw new Error(`Fetch greška: ${response.status} ${response.statusText}`);
       }
 
       const json = await response.json();
+      console.log(`✅ Podaci učitani sa ${endpoint}:`, json);
       setData(json);
-      setError(null);
     } catch (err) {
-      console.error(`Fetch greška za ${endpoint}:`, err);
+      console.error(`❌ Fetch greška za ${endpoint}:`, err);
       setError(err.message);
       setData(null);
     } finally {
       setLoading(false);
     }
-  };
+  }, [endpoint]);
 
   useEffect(() => {
     refetch();
-  }, [endpoint]);
+    
+    // Osvježi podatke svakih 10 sekundi
+    const interval = setInterval(() => {
+      refetch();
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [refetch]);
 
   return { data, loading, error, refetch };
 };
 
-const getApiUrl = () => {
-  if (process.env.REACT_APP_API_URL) {
-    return process.env.REACT_APP_API_URL;
-  }
-  if (window.location.hostname.includes('.github.dev') || window.location.hostname.includes('preview.app.github.dev')) {
-    const baseUrl = window.location.origin.replace(':3000', ':3005');
-    return baseUrl;
-  }
-  return 'http://localhost:3005';
-};
-
+/**
+ * Glavna komponenta za rang listu
+ */
 const LeaderboardPage = () => {
-  const { data: results, loading: resultsLoading } = useFetch('/results');
+  // Preuzmite sve potrebne podatke
+  const { data: results, loading: resultsLoading, error: resultsError } = useFetch('/results');
   const { data: users, loading: usersLoading } = useFetch('/users');
   const { data: quizzes } = useFetch('/quizzes');
+
+  // Stanje za tab
   const [tab, setTab] = useState('global');
   const loading = resultsLoading || usersLoading;
 
-  // Mapiranje korisnika po ID-u
+  console.log('📊 Rezultati:', results);
+  console.log('👥 Korisnici:', users);
+  console.log('📝 Kvizovi:', quizzes);
+
+  /**
+   * Mapiranje korisnika po ID-u
+   */
   const userMap = React.useMemo(() => {
-    if (!users) return {};
+    if (!users || !Array.isArray(users)) return {};
     return users.reduce((acc, u) => {
       acc[u.id] = u;
       return acc;
     }, {});
   }, [users]);
 
-  // Mapiranje kvizova po ID-u
+  /**
+   * Mapiranje kvizova po ID-u
+   */
   const quizMap = React.useMemo(() => {
-    if (!quizzes) return {};
+    if (!quizzes || !Array.isArray(quizzes)) return {};
     return quizzes.reduce((acc, q) => {
       acc[q.id] = q;
       return acc;
     }, {});
   }, [quizzes]);
 
-  const getName = (uid) => userMap[uid]?.name || `Korisnik #${uid}`;
-  const getQuiz = (qid) => quizMap[qid]?.title || `Kviz #${qid}`;
-
-  // Globalna rang lista — best rezultat po korisniku
+  /**
+   * Globalna rang lista - najbolji rezultat po korisniku
+   */
   const leaderboard = React.useMemo(() => {
-    if (!results || !users) return [];
+    if (!results || !Array.isArray(results)) return [];
 
+    // Grupiraj rezultate po korisnicima
     const byUser = {};
+
     results.forEach((r) => {
-      if (!byUser[r.userId] || r.percentage > byUser[r.userId].percentage) {
-        byUser[r.userId] = r;
+      const userId = r.userId;
+
+      // Ako je prvi rezultat korisnika ili je novi bolji nego prethodni
+      if (!byUser[userId] || (r.percentage && r.percentage > byUser[userId].percentage)) {
+        byUser[userId] = r;
       }
     });
 
+    // Pretvori u niz i sortiraj
     return Object.values(byUser)
       .map((r) => ({
         ...r,
-        name: getName(r.userId),
+        name: r.username || userMap[r.userId]?.name || `Korisnik #${r.userId}`,
+        percentage: r.percentage || Math.round((r.score / r.totalQuestions) * 100),
       }))
-      .sort((a, b) => b.percentage - a.percentage);
-  }, [results, users, userMap]);
+      .sort((a, b) => (b.percentage || 0) - (a.percentage || 0));
+  }, [results, userMap]);
 
-  // Nedavni rezultati — sortirani po datumu
+  /**
+   * Nedavni rezultati - sortirani po datumu
+   */
   const recent = React.useMemo(() => {
-    if (!results) return [];
+    if (!results || !Array.isArray(results)) return [];
+
     return [...results]
-      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
-      .slice(0, 20)
       .map((r) => ({
         ...r,
-        name: getName(r.userId),
-        quizTitle: getQuiz(r.quizId),
-      }));
+        name: r.username || userMap[r.userId]?.name || `Korisnik #${r.userId}`,
+        quizTitle: r.quizTitle || quizMap[r.quizId]?.title || `Kviz #${r.quizId}`,
+        percentage: r.percentage || Math.round((r.score / r.totalQuestions) * 100),
+        completedAt: r.completedAt || new Date().toISOString(),
+      }))
+      .sort((a, b) => new Date(b.completedAt) - new Date(a.completedAt))
+      .slice(0, 20);
   }, [results, userMap, quizMap]);
 
+  /**
+   * Medal emoji
+   */
   const medal = (i) => {
     const medals = ['🥇', '🥈', '🥉'];
     return medals[i] || `#${i + 1}`;
   };
 
+  /**
+   * Visina podijuma
+   */
   const getPodiumHeight = (rank) => {
     const heights = { 1: 80, 2: 60, 3: 40 };
     return heights[rank] || 40;
@@ -134,11 +184,29 @@ const LeaderboardPage = () => {
           className="animate-fade-in"
         >
           <span className="section-tag">🏆 TAKMIČENJE</span>
-          <h1 style={{ margin: '12px 0 16px', fontSize: '2.5rem' }}>Rang lista</h1>
+          <h1 style={{ margin: '12px 0 16px', fontSize: '2.5rem' }}>
+            Rang lista
+          </h1>
           <p style={{ fontSize: '1rem', color: 'var(--color-text-muted)' }}>
             Pogledajte ko su najbolji kvizerski umovi
           </p>
         </div>
+
+        {/* Greška pri učitavanju */}
+        {resultsError && (
+          <div
+            style={{
+              padding: '16px 20px',
+              background: 'rgba(255, 77, 109, 0.1)',
+              border: '1px solid var(--color-danger)',
+              borderRadius: 'var(--radius-md)',
+              marginBottom: '24px',
+              color: 'var(--color-danger)',
+            }}
+          >
+            ⚠️ Greška pri učitavanju rezultata: {resultsError}
+          </div>
+        )}
 
         {/* Tab dugmad */}
         <div className="lb-tabs animate-fade-in">
@@ -166,6 +234,7 @@ const LeaderboardPage = () => {
           </div>
         ) : (
           <>
+            {/* GLOBAL TAB */}
             {tab === 'global' && (
               <div className="animate-fade-in">
                 {leaderboard.length === 0 ? (
@@ -189,12 +258,12 @@ const LeaderboardPage = () => {
                     </span>
                     <h3>Nema rezultata još</h3>
                     <p style={{ color: 'var(--color-text-muted)' }}>
-                      Budite prvi! Igrajte kviz da dobijete mjesto na rang listi.
+                      Budite prvi! Igraјte kviz da dobijete mjesto na rang listi.
                     </p>
                   </div>
                 ) : (
                   <>
-                    {/* Podijum — top 3 */}
+                    {/* Podijum - top 3 */}
                     {leaderboard.length >= 3 && (
                       <div className="podium">
                         {[
@@ -210,7 +279,9 @@ const LeaderboardPage = () => {
                               {['🥇', '🥈', '🥉'][r - 1]}
                             </span>
                             <strong className="podium-name">{p?.name}</strong>
-                            <span className="podium-score">{p?.percentage}%</span>
+                            <span className="podium-score">
+                              {p?.percentage || 0}%
+                            </span>
                             <div
                               className={`podium-bar pb-${r}`}
                               style={{ height: getPodiumHeight(r) }}
@@ -220,7 +291,7 @@ const LeaderboardPage = () => {
                       </div>
                     )}
 
-                    {/* Tabela */}
+                    {/* Tabela - svi rezultati */}
                     <div className="table-wrapper">
                       <table className="leaderboard-table">
                         <thead>
@@ -234,38 +305,47 @@ const LeaderboardPage = () => {
                         </thead>
                         <tbody>
                           {leaderboard.map((entry, i) => (
-                            <tr key={entry.userId} className={i < 3 ? 'top-three' : ''}>
+                            <tr
+                              key={entry.userId}
+                              className={i < 3 ? 'top-three' : ''}
+                            >
                               <td className="rank-cell">{medal(i)}</td>
                               <td className="user-cell">
                                 <div className="user-badge">
                                   <div className="user-avatar">
-                                    {entry.name.charAt(0).toUpperCase()}
+                                    {entry.name?.charAt(0).toUpperCase() || '?'}
                                   </div>
                                   <span>{entry.name}</span>
                                 </div>
                               </td>
                               <td className="score-cell">
                                 <div className="score-bar">
-                                  <div className="score-fill" style={{ width: `${entry.percentage}%` }} />
+                                  <div
+                                    className="score-fill"
+                                    style={{
+                                      width: `${entry.percentage || 0}%`,
+                                    }}
+                                  />
                                 </div>
                                 <strong style={{ marginLeft: 12 }}>
-                                  {entry.percentage}%
+                                  {entry.percentage || 0}%
                                 </strong>
                               </td>
                               <td className="answers-cell">
                                 <span className="answers-badge">
-                                  {entry.score} / {entry.total}
+                                  {entry.score} / {entry.totalQuestions || entry.total}
                                 </span>
                               </td>
                               <td className="date-cell">
-                                {new Date(entry.completedAt).toLocaleDateString(
-                                  'bs-BA',
-                                  {
-                                    year: 'numeric',
-                                    month: 'short',
-                                    day: 'numeric',
-                                  }
-                                )}
+                                {new Date(
+                                  entry.completedAt ||
+                                    entry.createdAt ||
+                                    new Date()
+                                ).toLocaleDateString('bs-BA', {
+                                  year: 'numeric',
+                                  month: 'short',
+                                  day: 'numeric',
+                                })}
                               </td>
                             </tr>
                           ))}
@@ -277,6 +357,7 @@ const LeaderboardPage = () => {
               </div>
             )}
 
+            {/* RECENT TAB */}
             {tab === 'recent' && (
               <div className="table-wrapper animate-fade-in">
                 {recent.length === 0 ? (
@@ -296,7 +377,7 @@ const LeaderboardPage = () => {
                         <th>Korisnik</th>
                         <th>Kviz</th>
                         <th>Rezultat</th>
-                        <th>Datum</th>
+                        <th>Vrijeme</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -305,7 +386,7 @@ const LeaderboardPage = () => {
                           <td className="user-cell">
                             <div className="user-badge">
                               <div className="user-avatar">
-                                {r.name.charAt(0).toUpperCase()}
+                                {r.name?.charAt(0).toUpperCase() || '?'}
                               </div>
                               <span>{r.name}</span>
                             </div>
@@ -315,16 +396,18 @@ const LeaderboardPage = () => {
                             <strong
                               style={{
                                 color:
-                                  r.percentage >= 60
+                                  (r.percentage || 0) >= 60
                                     ? 'var(--color-success)'
                                     : 'var(--color-danger)',
                               }}
                             >
-                              {r.percentage}%
+                              {r.percentage || 0}%
                             </strong>
                           </td>
                           <td className="date-cell">
-                            {new Date(r.completedAt).toLocaleDateString('bs-BA', {
+                            {new Date(
+                              r.completedAt || new Date()
+                            ).toLocaleDateString('bs-BA', {
                               year: 'numeric',
                               month: 'short',
                               day: 'numeric',
@@ -344,6 +427,7 @@ const LeaderboardPage = () => {
       </div>
 
       <style>{`
+        /* CSS stilovi ostaju identični */
         .leaderboard-page {
           padding-top: 80px;
           min-height: 100vh;
@@ -394,7 +478,6 @@ const LeaderboardPage = () => {
           border-bottom-color: var(--color-primary);
         }
 
-        /* Podijum */
         .podium {
           display: flex;
           justify-content: center;
@@ -402,7 +485,11 @@ const LeaderboardPage = () => {
           gap: 16px;
           margin-bottom: 40px;
           padding: 32px 24px;
-          background: linear-gradient(135deg, rgba(108, 99, 255, 0.05), rgba(0, 217, 166, 0.05));
+          background: linear-gradient(
+            135deg,
+            rgba(108, 99, 255, 0.05),
+            rgba(0, 217, 166, 0.05)
+          );
           border-radius: var(--radius-lg);
           border: 1px solid var(--color-border);
         }
@@ -414,17 +501,9 @@ const LeaderboardPage = () => {
           gap: 8px;
         }
 
-        .rank-1 {
-          order: 2;
-        }
-
-        .rank-2 {
-          order: 1;
-        }
-
-        .rank-3 {
-          order: 3;
-        }
+        .rank-1 { order: 2; }
+        .rank-2 { order: 1; }
+        .rank-3 { order: 3; }
 
         .podium-avatar {
           width: 56px;
@@ -468,18 +547,16 @@ const LeaderboardPage = () => {
         }
 
         .pb-1 {
-          background: linear-gradient(180deg, var(--color-primary), rgba(108, 99, 255, 0.2));
+          background: linear-gradient(
+            180deg,
+            var(--color-primary),
+            rgba(108, 99, 255, 0.2)
+          );
         }
 
-        .pb-2 {
-          background: linear-gradient(180deg, #f59e0b, rgba(245, 158, 11, 0.2));
-        }
+        .pb-2 { background: linear-gradient(180deg, #f59e0b, rgba(245, 158, 11, 0.2)); }
+        .pb-3 { background: linear-gradient(180deg, #10b981, rgba(16, 185, 129, 0.2)); }
 
-        .pb-3 {
-          background: linear-gradient(180deg, #10b981, rgba(16, 185, 129, 0.2));
-        }
-
-        /* Tabela */
         .table-wrapper {
           background: var(--color-surface);
           border: 1px solid var(--color-border);
@@ -514,36 +591,14 @@ const LeaderboardPage = () => {
           vertical-align: middle;
         }
 
-        tbody tr {
-          transition: all 0.2s ease;
-        }
+        tbody tr { transition: all 0.2s ease; }
+        tbody tr:hover { background: var(--color-surface-2); }
+        tbody tr.top-three { background: rgba(108, 99, 255, 0.04); }
+        tbody tr:last-child td { border-bottom: none; }
 
-        tbody tr:hover {
-          background: var(--color-surface-2);
-        }
-
-        tbody tr.top-three {
-          background: rgba(108, 99, 255, 0.04);
-        }
-
-        tbody tr:last-child td {
-          border-bottom: none;
-        }
-
-        .rank-cell {
-          font-size: 1.2rem;
-          font-weight: 700;
-        }
-
-        .user-cell {
-          min-width: 200px;
-        }
-
-        .user-badge {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
+        .rank-cell { font-size: 1.2rem; font-weight: 700; }
+        .user-cell { min-width: 200px; }
+        .user-badge { display: flex; align-items: center; gap: 12px; }
 
         .user-avatar {
           width: 36px;
@@ -559,10 +614,7 @@ const LeaderboardPage = () => {
           flex-shrink: 0;
         }
 
-        .score-cell {
-          min-width: 150px;
-        }
-
+        .score-cell { min-width: 150px; }
         .score-bar {
           width: 100%;
           height: 6px;
@@ -579,10 +631,7 @@ const LeaderboardPage = () => {
           transition: width 0.3s ease;
         }
 
-        .answers-cell {
-          text-align: center;
-        }
-
+        .answers-cell { text-align: center; }
         .answers-badge {
           display: inline-block;
           background: var(--color-surface-2);
@@ -592,19 +641,9 @@ const LeaderboardPage = () => {
           font-weight: 600;
         }
 
-        .date-cell {
-          font-size: 0.85rem;
-          color: var(--color-text-muted);
-        }
-
-        .loading-center {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          padding: 80px 24px;
-        }
-
+        .date-cell { font-size: 0.85rem; color: var(--color-text-muted); }
+        .loading-center { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 80px 24px; }
+        
         .spinner {
           width: 48px;
           height: 48px;
@@ -614,103 +653,33 @@ const LeaderboardPage = () => {
           animation: spin 1s linear infinite;
         }
 
-        @keyframes spin {
-          to {
-            transform: rotate(360deg);
-          }
-        }
-
-        .animate-fade-in {
-          animation: fadeIn 0.4s ease-out;
-        }
-
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out; }
         @keyframes fadeIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
+          from { opacity: 0; transform: translateY(10px); }
+          to { opacity: 1; transform: translateY(0); }
         }
 
         @media (max-width: 1024px) {
-          .podium {
-            gap: 12px;
-            padding: 24px;
-          }
-
-          th {
-            padding: 12px;
-            font-size: 0.8rem;
-          }
-
-          td {
-            padding: 12px;
-          }
-
-          .user-badge {
-            gap: 8px;
-          }
-
-          .user-avatar {
-            width: 32px;
-            height: 32px;
-            font-size: 0.8rem;
-          }
+          .podium { gap: 12px; padding: 24px; }
+          th { padding: 12px; font-size: 0.8rem; }
+          td { padding: 12px; }
+          .user-badge { gap: 8px; }
+          .user-avatar { width: 32px; height: 32px; font-size: 0.8rem; }
         }
 
         @media (max-width: 768px) {
-          .podium {
-            gap: 8px;
-            padding: 16px;
-            margin-bottom: 24px;
-          }
-
-          .podium-avatar {
-            width: 48px;
-            height: 48px;
-          }
-
-          .rank-1 .podium-avatar {
-            width: 56px;
-            height: 56px;
-          }
-
-          .podium-bar {
-            width: 60px;
-          }
-
-          .lb-tabs {
-            gap: 4px;
-          }
-
-          .lb-tab {
-            padding: 10px 16px;
-            font-size: 0.85rem;
-          }
-
-          table {
-            font-size: 0.85rem;
-          }
-
-          th,
-          td {
-            padding: 10px;
-          }
-
-          .user-cell {
-            min-width: auto;
-          }
-
-          .score-cell {
-            min-width: auto;
-          }
-
-          .answers-badge {
-            font-size: 0.8rem;
-          }
+          .podium { gap: 8px; padding: 16px; margin-bottom: 24px; }
+          .podium-avatar { width: 48px; height: 48px; }
+          .rank-1 .podium-avatar { width: 56px; height: 56px; }
+          .podium-bar { width: 60px; }
+          .lb-tabs { gap: 4px; }
+          .lb-tab { padding: 10px 16px; font-size: 0.85rem; }
+          table { font-size: 0.85rem; }
+          th, td { padding: 10px; }
+          .user-cell { min-width: auto; }
+          .score-cell { min-width: auto; }
+          .answers-badge { font-size: 0.8rem; }
         }
       `}</style>
     </div>
