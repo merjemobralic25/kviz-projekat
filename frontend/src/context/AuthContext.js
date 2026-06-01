@@ -1,79 +1,182 @@
-import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 
 const AuthContext = createContext(null);
 
-const API_URL = process.env.REACT_APP_API_URL || 'http://localhost:3001';
+const getApiUrl = () => {
+  if (process.env.REACT_APP_API_URL) {
+    return process.env.REACT_APP_API_URL;
+  }
+
+  if (window.location.hostname.includes('.github.dev')) {
+    if (window.location.origin.includes('-3000.')) {
+      return window.location.origin.replace('-3000.', '-3005.');
+    }
+    return window.location.origin.replace('//', '//') + ':3005';
+  }
+
+  return 'http://localhost:3005';
+};
+
+const API_URL = getApiUrl();
+console.log('🔌 API URL:', API_URL);
 
 export const AuthProvider = ({ children }) => {
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
-
-  useEffect(() => {
-    const stored = localStorage.getItem('quiz_user');
-    if (stored) {
-      try {
-        setUser(JSON.parse(stored));
-      } catch {
-        localStorage.removeItem('quiz_user');
-      }
+  const [user, setUser] = useState(() => {
+    try {
+      const stored = localStorage.getItem('currentUser');
+      return stored ? JSON.parse(stored) : null;
+    } catch (error) {
+      console.error('❌ Greška pri čitanju korisnika iz localStorage:', error);
+      localStorage.removeItem('currentUser');
+      return null;
     }
-    setLoading(false);
-  }, []);
+  });
 
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(null);
+
+  /**
+   * Login — pronalazi korisnika u bazi, vraća i čuva u localStorage
+   */
   const login = useCallback(async (email, password) => {
-    const response = await fetch(`${API_URL}/users?email=${encodeURIComponent(email)}`);
-    if (!response.ok) throw new Error('Server greška, pokušajte ponovo.');
+    setLoading(true);
+    setError(null);
 
-    const users = await response.json();
-    const found = users.find(u => u.email === email && u.password === password);
+    try {
+      const response = await fetch(`${API_URL}/users`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        credentials: 'include',
+      });
 
-    if (!found) throw new Error('Pogrešan email ili lozinka.');
+      if (!response.ok) {
+        throw new Error(`Server greška: ${response.status} ${response.statusText}`);
+      }
 
-    const { password: _pw, ...safeUser } = found;
-    localStorage.setItem('quiz_user', JSON.stringify(safeUser));
-    setUser(safeUser);
-    return safeUser;
+      const users = await response.json();
+
+      const found = users.find(
+        (u) =>
+          u.email?.toLowerCase().trim() === email.toLowerCase().trim() &&
+          u.password?.trim() === password.trim()
+      );
+
+      if (!found) {
+        const err = new Error('Pogrešna email adresa ili lozinka.');
+        setError(err.message);
+        throw err;
+      }
+
+      const safeUser = {
+        id: found.id,
+        name: found.name,
+        email: found.email,
+        role: found.role || 'guest',
+        createdAt: found.createdAt,
+      };
+
+      localStorage.setItem('currentUser', JSON.stringify(safeUser));
+      setUser(safeUser);
+
+      console.log('✅ Login uspješan:', safeUser.name);
+      return safeUser;
+    } catch (error) {
+      console.error('❌ Login greška:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  /**
+   * Register — SAMO kreira novog korisnika u bazi, bez automatskog logovanja
+   */
   const register = useCallback(async (name, email, password) => {
-    const checkRes = await fetch(`${API_URL}/users?email=${encodeURIComponent(email)}`);
-    const existing = await checkRes.json();
-    if (existing.length > 0) throw new Error('Email već postoji.');
+    setLoading(true);
+    setError(null);
 
-    const newUser = {
-      name,
-      email,
-      password,
-      role: 'guest',
-      createdAt: new Date().toISOString(),
-    };
+    try {
+      // Provjeri postoji li email
+      const checkRes = await fetch(`${API_URL}/users?email=${encodeURIComponent(email)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
 
-    const res = await fetch(`${API_URL}/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(newUser),
-    });
+      if (!checkRes.ok) {
+        throw new Error(`Server greška pri provjeri emaila: ${checkRes.status}`);
+      }
 
-    if (!res.ok) throw new Error('Registracija nije uspjela.');
+      const existing = await checkRes.json();
 
-    const created = await res.json();
-    const { password: _pw, ...safeUser } = created;
-    localStorage.setItem('quiz_user', JSON.stringify(safeUser));
-    setUser(safeUser);
-    return safeUser;
+      if (existing && existing.length > 0) {
+        const err = new Error('Email je već registriran.');
+        setError(err.message);
+        throw err;
+      }
+
+      // Kreiraj novog korisnika u bazi podataka
+      const createRes = await fetch(`${API_URL}/users`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          name: name.trim(),
+          email: email.trim().toLowerCase(),
+          password: password.trim(),
+          role: 'guest',
+          createdAt: new Date().toISOString(),
+        }),
+      });
+
+      if (!createRes.ok) {
+        throw new Error(`Registracija nije uspjela: ${createRes.status}`);
+      }
+
+      const created = await createRes.json();
+      console.log('✅ Korisnik uspješno kreiran u bazi:', created.name);
+      
+      // Vraćamo podatke ali NE diramo localStorage i setUser. State ostaje prazan.
+      return created;
+
+    } catch (error) {
+      console.error('❌ Register greška:', error);
+      setError(error.message);
+      throw error;
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
+  /**
+   * Logout — briše iz localStorage i resetuje stanje
+   */
   const logout = useCallback(() => {
-    localStorage.removeItem('quiz_user');
+    localStorage.removeItem('currentUser');
     setUser(null);
+    setError(null);
+    console.log('✅ Logout uspješan');
   }, []);
 
-  const isAdmin = user?.role === 'admin';
-  const isGuest = user?.role === 'guest';
-  const isAuthenticated = !!user;
+  const value = {
+    user,
+    loading,
+    error,
+    login,
+    register,
+    logout,
+    isAdmin: user?.role === 'admin',
+    isGuest: user?.role === 'guest',
+    isAuthenticated: !!user,
+  };
 
   return (
-    <AuthContext.Provider value={{ user, loading, login, register, logout, isAdmin, isGuest, isAuthenticated }}>
+    <AuthContext.Provider value={value}>
       {children}
     </AuthContext.Provider>
   );
@@ -81,6 +184,10 @@ export const AuthProvider = ({ children }) => {
 
 export const useAuth = () => {
   const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  if (!ctx) {
+    throw new Error('useAuth mora biti korišten unutar AuthProvider-a');
+  }
   return ctx;
 };
+
+export default AuthContext;

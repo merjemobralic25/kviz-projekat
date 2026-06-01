@@ -14,7 +14,7 @@
 
 ### Član 1 — Merjem Obralić
 
-**DWS:** Glavni fajl sa svim putanjama koji spaja sve stranice (App js), početna stranica (HomePage), stranica za prijavu (LoginPage), stranica za registraciju (RegisterPage)
+**DWS:** Glavni fajl sa svim putanjama koji spaja sve stranice (App js), početna stranica (HomePage), stranica za prijavu (LoginPage), stranica za registraciju (RegisterPage), nginx
 
 **OSiRuO:** Db JSON, postavke za JSON server (package), Docker konfiguracija za backend (dockerfile), Docker Compose - jednim klikom povezuje i pokreće čitav projekat.
 
@@ -22,13 +22,13 @@
 
 **DWS:** Sve biblioteke i zavisnosti za React (frontend package), glavni HTML prozor aplikacije (index HTML), glavna ulazna tačka za React (index js), globalni CSS sa dizajnom i varijablama (index css), globalno upravljanje prijavom i odjavom korisnika (Auth), validacija za email, lozinke i forme (validators), lista svih dostupnih kvizova (quizzesPage), igranje kviza sa tajmerom (quizPlayPage), rang lista sa najboljim rezultatima (LeaderboardPage), admin panel za upravljanje kvizovima i korisnicima (AdminPage)
 
-**OSiRuO:** 
+**OSiRuO:** Health check, Dockerfile frontend
 
 ### Član 3 — Adna Hrustanović
 
 **DWS:** Funkcionalnosti: povlačenje podataka is db json baze (useFetch), lakše upravljanje formama (useForm), tajmer za odbrojavanje vremena tokom kviza (useTimer). Glavni meni na vrhu stranice (navbar), podnožje stranice (footer), zaštita koja brani običnim korsinicima da uđu na Admin stranicu (PrivateRoute), "O nama" stranica, kontakt forma sa Google mapom, 404 stranica za nepostojeće linkove
 
-**OSiRuO:** GitIgnore
+**OSiRuO:** GitIgnore, Dockerfile backend
 
 ---
 

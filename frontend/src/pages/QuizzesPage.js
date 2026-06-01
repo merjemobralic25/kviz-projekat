@@ -1,92 +1,95 @@
 import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { useFetch } from '../hooks/useFetch';
 
-const CATS = ['Sve', 'Opće znanje', 'Nauka', 'Geografija'];
-const DIFFS = ['Sve', 'Lako', 'Srednje', 'Teško'];
+const localQuizzes = [
+  {
+    "id": "1",
+    "title": "Opće znanje",
+    "description": "Testirajte svoje opće znanje iz različitih oblasti.",
+    "category": "Opće znanje",
+    "difficulty": "Srednje",
+    "timeLimit": 45,
+    "questionsCount": 5
+  },
+  {
+    "id": "2",
+    "title": "Nauka i tehnologija",
+    "description": "Koliko znate o najnovijim dostignućima nauke i tehnologije?",
+    "category": "Nauka",
+    "difficulty": "Teško",
+    "timeLimit": 60,
+    "questionsCount": 4
+  },
+  {
+    "id": "3",
+    "title": "Geografija svijeta",
+    "description": "Putujte kroz kontinente i testujte svoje znanje geografije.",
+    "category": "Geografija",
+    "difficulty": "Lako",
+    "timeLimit": 30,
+    "questionsCount": 3
+  }
+];
 
 const QuizzesPage = () => {
-  const { data: quizzes, loading } = useFetch('/quizzes');
   const [search, setSearch] = useState('');
-  const [cat, setCat] = useState('Sve');
-  const [diff, setDiff] = useState('Sve');
+  const [category, setCategory] = useState('Sve');
 
-  const filtered = (quizzes || []).filter(q =>
-    (q.title.toLowerCase().includes(search.toLowerCase()) || q.description.toLowerCase().includes(search.toLowerCase())) &&
-    (cat === 'Sve' || q.category === cat) &&
-    (diff === 'Sve' || q.difficulty === diff)
-  );
-
-  const diffBadge = (d) => d === 'Lako' ? 'badge-success' : d === 'Teško' ? 'badge-danger' : 'badge-warning';
+  const filteredQuizzes = localQuizzes.filter(q => {
+    const matchesSearch = q.title.toLowerCase().includes(search.toLowerCase()) || 
+                          q.description.toLowerCase().includes(search.toLowerCase());
+    const matchesCategory = category === 'Sve' || q.category === category;
+    return matchesSearch && matchesCategory;
+  });
 
   return (
-    <div className="page-wrapper">
+    <div className="page-wrapper" style={{ padding: '100px var(--space-lg) 40px' }}>
       <div className="container">
-        <div className="qp-header animate-fade-in">
-          <span className="section-tag">Svi kvizovi</span>
-          <h1>Odaberite kviz</h1>
-          <p>Pronađite savršeni kviz za vaš nivo znanja</p>
+        <div style={{ marginBottom: 40, textAlign: 'center' }}>
+          <h1 style={{ fontSize: '2.5rem', marginBottom: 12 }}>Dostupni Kvizovi</h1>
+          <p style={{ color: 'var(--color-text-muted)' }}>Izaberite temu i testirajte svoje znanje!</p>
         </div>
 
-        <div className="filters-bar animate-fade-in">
-          <div style={{ position: 'relative' }}>
-            <span style={{ position: 'absolute', left: 16, top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
-            <input type="text" className="form-input" style={{ paddingLeft: 44 }} placeholder="Pretražite kvizove..."
-              value={search} onChange={e => setSearch(e.target.value)} />
-          </div>
-          <div className="filter-row">
-            {CATS.map(c => <button key={c} className={`filter-btn${cat === c ? ' active' : ''}`} onClick={() => setCat(c)}>{c}</button>)}
-          </div>
-          <div className="filter-row">
-            {DIFFS.map(d => <button key={d} className={`filter-btn${diff === d ? ' active' : ''}`} onClick={() => setDiff(d)}>{d}</button>)}
-          </div>
+        <div style={{ display: 'flex', gap: 16, marginBottom: 32, flexWrap: 'wrap', justifyContent: 'center' }}>
+          <input 
+            type="text" 
+            placeholder="Pretraži kvizove..." 
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)', maxWidth: 300, width: '100%' }}
+          />
+          <select 
+            value={category} 
+            onChange={(e) => setCategory(e.target.value)}
+            style={{ padding: '12px 20px', borderRadius: 'var(--radius-md)', border: '1px solid var(--color-border)', background: 'var(--color-surface)', color: 'var(--color-text)' }}
+          >
+            <option value="Sve">Sve kategorije</option>
+            <option value="Opće znanje">Opće znanje</option>
+            <option value="Nauka">Nauka</option>
+            <option value="Geografija">Geografija</option>
+          </select>
         </div>
 
-        {loading ? (
-          <div className="loading-center"><div className="spinner" /><p>Učitavanje kvizova...</p></div>
-        ) : (
-          <>
-            <p style={{ fontSize: '0.85rem', color: 'var(--color-text-dim)', marginBottom: 24 }}>{filtered.length} kviz{filtered.length !== 1 ? 'a' : ''} pronađeno</p>
-            <div className="quizzes-grid">
-              {filtered.length === 0
-                ? <div className="no-results"><span>🔎</span><h3>Nema rezultata</h3><p>Pokušajte promijeniti filtere.</p></div>
-                : filtered.map((q, i) => (
-                  <div key={q.id} className="quiz-card animate-fade-in" style={{ animationDelay: `${i * 60}ms` }}>
-                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
-                      <span className="badge badge-accent">{q.category}</span>
-                      <span className={`badge ${diffBadge(q.difficulty)}`}>{q.difficulty}</span>
-                    </div>
-                    <h3 style={{ fontSize: '1.15rem', marginBottom: 8 }}>{q.title}</h3>
-                    <p style={{ fontSize: '0.875rem', flex: 1, marginBottom: 16 }}>{q.description}</p>
-                    <div style={{ display: 'flex', gap: 20, marginBottom: 16 }}>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>❓ {q.questions?.length || 0} pitanja</span>
-                      <span style={{ fontSize: '0.82rem', color: 'var(--color-text-muted)', display: 'flex', alignItems: 'center', gap: 6 }}>⏱ {Math.floor(q.timeLimit / 60)} min</span>
-                    </div>
-                    <Link to={`/quizzes/${q.id}`} className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>Pokreni kviz →</Link>
-                  </div>
-                ))
-              }
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 24 }}>
+          {filteredQuizzes.map(quiz => (
+            <div key={quiz.id} className="card" style={{ background: 'var(--color-surface)', padding: 24, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', borderRadius: 'var(--radius-lg)', border: '1px solid var(--color-border)' }}>
+              <div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                  <span className="badge badge-primary">{quiz.category}</span>
+                  <span className={`badge ${quiz.difficulty === 'Lako' ? 'badge-success' : quiz.difficulty === 'Teško' ? 'badge-danger' : 'badge-warning'}`}>{quiz.difficulty}</span>
+                </div>
+                <h3 style={{ fontSize: '1.3rem', marginBottom: 8 }}>{quiz.title}</h3>
+                <p style={{ fontSize: '0.9rem', color: 'var(--color-text-muted)', marginBottom: 20 }}>{quiz.description}</p>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', paddingTop: 16, borderTop: '1px solid var(--color-border)' }}>
+                 <span style={{ fontSize: '0.85rem', color: 'var(--color-text-dim)' }}>⏱ {quiz.timeLimit}s</span>
+                
+                <Link to={`/quizzes/${quiz.id}`} className="btn btn-accent btn-sm">Započni ⚡</Link>
+              </div>
             </div>
-          </>
-        )}
+          ))}
+        </div>
       </div>
-
-      <style>{`
-        .qp-header { text-align: center; padding: var(--space-2xl) 0 var(--space-xl); }
-        .qp-header h1 { margin: 12px 0 16px; }
-        .filters-bar { display: flex; flex-direction: column; gap: 16px; margin-bottom: 40px; padding: 24px; background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
-        .filter-row { display: flex; gap: 8px; flex-wrap: wrap; }
-        .filter-btn { padding: 7px 16px; border-radius: var(--radius-full); border: 1.5px solid var(--color-border); background: transparent; color: var(--color-text-muted); font-family: var(--font-body); font-size: 0.85rem; cursor: pointer; transition: all var(--transition-base); }
-        .filter-btn:hover { border-color: var(--color-primary); color: var(--color-primary); }
-        .filter-btn.active { background: var(--color-primary); border-color: var(--color-primary); color: white; }
-        .quizzes-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 24px; padding-bottom: 80px; }
-        .quiz-card { background: var(--color-surface); border: 1px solid var(--color-border); border-radius: var(--radius-lg); padding: 28px; display: flex; flex-direction: column; transition: all var(--transition-base); }
-        .quiz-card:hover { border-color: var(--color-primary); transform: translateY(-4px); box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
-        .no-results { grid-column: 1/-1; text-align: center; padding: 80px 24px; color: var(--color-text-muted); }
-        .no-results span { font-size: 3rem; display: block; margin-bottom: 16px; }
-        @media (max-width: 1024px) { .quizzes-grid { grid-template-columns: repeat(2,1fr); } }
-        @media (max-width: 768px) { .quizzes-grid { grid-template-columns: 1fr; } }
-      `}</style>
     </div>
   );
 };

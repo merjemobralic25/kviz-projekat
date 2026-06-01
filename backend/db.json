@@ -1,147 +1,262 @@
 {
   "users": [
     {
-      "id": "1",
+      "id": "admin-001",
       "name": "Admin",
       "email": "admin@quiz.com",
       "password": "admin123",
       "role": "admin",
-      "createdAt": "2024-01-01T00:00:00.000Z"
+      "createdAt": "2024-01-01T10:00:00Z"
     },
     {
-      "id": "2",
-      "name": "Test User",
+      "id": "user-001",
+      "name": "Korisnik",
       "email": "user@quiz.com",
       "password": "user123",
       "role": "guest",
-      "createdAt": "2024-01-02T00:00:00.000Z"
+      "createdAt": "2024-01-02T10:00:00Z"
+    },
+    {
+      "id": "user-002",
+      "name": "Marko",
+      "email": "marko@example.com",
+      "password": "pass123",
+      "role": "guest",
+      "createdAt": "2024-01-03T10:00:00Z"
+    },
+    {
+      "name": "Merjem",
+      "email": "merjem.obralic.25@size.ba",
+      "password": "11223344av",
+      "role": "guest",
+      "createdAt": "2026-06-01T19:08:15.449Z",
+      "id": "KntYNvm"
     }
   ],
   "quizzes": [
     {
-      "id": "1",
+      "id": "quiz-001",
       "title": "Opće znanje",
-      "description": "Testirajte svoje opće znanje iz različitih oblasti.",
+      "description": "Osnovna pitanja iz raznih oblasti",
       "category": "Opće znanje",
       "difficulty": "Srednje",
       "timeLimit": 300,
-      "createdAt": "2024-01-01T00:00:00.000Z",
-      "createdBy": "1",
       "questions": [
         {
           "id": "q1",
-          "text": "Koji je glavni grad Bosne i Hercegovine?",
-          "options": ["Banja Luka", "Sarajevo", "Mostar", "Tuzla"],
-          "correct": 1
-        },
-        {
-          "id": "q2",
-          "text": "Koliko planeta ima u Sunčevom sistemu?",
-          "options": ["7", "8", "9", "10"],
-          "correct": 1
-        },
-        {
-          "id": "q3",
-          "text": "Koja rijeka prolazi kroz London?",
-          "options": ["Temza", "Sena", "Rajn", "Dunav"],
-          "correct": 0
-        },
-        {
-          "id": "q4",
-          "text": "Ko je napisao 'Romeo i Julija'?",
-          "options": ["Charles Dickens", "Jane Austen", "William Shakespeare", "Mark Twain"],
-          "correct": 2
-        },
-        {
-          "id": "q5",
-          "text": "Koliko strana ima kocka?",
-          "options": ["4", "6", "8", "12"],
-          "correct": 1
-        }
-      ]
-    },
-    {
-      "id": "2",
-      "title": "Nauka i tehnologija",
-      "description": "Koliko znate o najnovijim dostignućima nauke i tehnologije?",
-      "category": "Nauka",
-      "difficulty": "Teško",
-      "timeLimit": 240,
-      "createdAt": "2024-01-03T00:00:00.000Z",
-      "createdBy": "1",
-      "questions": [
-        {
-          "id": "q1",
-          "text": "Koji element ima hemijski simbol 'Au'?",
-          "options": ["Srebro", "Platina", "Zlato", "Aluminij"],
-          "correct": 2
-        },
-        {
-          "id": "q2",
-          "text": "Koja kompanija je razvila React?",
-          "options": ["Google", "Microsoft", "Apple", "Meta"],
-          "correct": 3
-        },
-        {
-          "id": "q3",
-          "text": "Šta znači HTTP?",
+          "text": "Koja je capital Republike Srpske?",
           "options": [
-            "HyperText Transfer Protocol",
-            "High Transfer Text Protocol",
-            "HyperText Transport Protocol",
-            "Hybrid Transfer Text Protocol"
+            "Banja Luka",
+            "Sarajevo",
+            "Trebinje",
+            "Pale"
           ],
           "correct": 0
         },
         {
-          "id": "q4",
-          "text": "Koji jezik se koristi za stilizovanje web stranica?",
-          "options": ["HTML", "JavaScript", "CSS", "Python"],
-          "correct": 2
-        }
-      ]
-    },
-    {
-      "id": "3",
-      "title": "Geografija svijeta",
-      "description": "Putujte kroz kontinente i testujte svoje znanje geografije.",
-      "category": "Geografija",
-      "difficulty": "Lako",
-      "timeLimit": 360,
-      "createdAt": "2024-01-05T00:00:00.000Z",
-      "createdBy": "1",
-      "questions": [
-        {
-          "id": "q1",
-          "text": "Koji je najveći ocean na svijetu?",
-          "options": ["Atlantski", "Indijski", "Tihi", "Arktički"],
+          "id": "q2",
+          "text": "Koliko kontinenata ima?",
+          "options": [
+            "5",
+            "6",
+            "7",
+            "8"
+          ],
           "correct": 2
         },
         {
+          "id": "q3",
+          "text": "Šta je najveća planeta u našoj solarnoj sistemu?",
+          "options": [
+            "Saturn",
+            "Mars",
+            "Jupiter",
+            "Neptun"
+          ],
+          "correct": 2
+        }
+      ],
+      "createdAt": "2024-01-01T12:00:00Z",
+      "createdBy": "admin-001"
+    },
+    {
+      "id": "quiz-002",
+      "title": "Nauka - Biologija",
+      "description": "Pitanja iz biologije - teško",
+      "category": "Nauka",
+      "difficulty": "Teško",
+      "timeLimit": 600,
+      "questions": [
+        {
+          "id": "q1",
+          "text": "Koja je funkcija mitohondrije?",
+          "options": [
+            "Fotosinteza",
+            "Proizvodnja energije (ATP)",
+            "Proteinska sinteza",
+            "Skladištenje vode"
+          ],
+          "correct": 1
+        },
+        {
           "id": "q2",
-          "text": "Na kom kontinentu se nalazi Sahara?",
-          "options": ["Azija", "Afrika", "Australija", "Južna Amerika"],
+          "text": "Koliko hromozoma ima čovjek?",
+          "options": [
+            "23",
+            "46",
+            "48",
+            "52"
+          ],
+          "correct": 1
+        }
+      ],
+      "createdAt": "2024-01-02T12:00:00Z",
+      "createdBy": "admin-001"
+    },
+    {
+      "id": "quiz-003",
+      "title": "Geografija",
+      "description": "Brz kviz iz geografije - lako",
+      "category": "Geografija",
+      "difficulty": "Lako",
+      "timeLimit": 180,
+      "questions": [
+        {
+          "id": "q1",
+          "text": "Koja je najveća rijeka u Evropi?",
+          "options": [
+            "Dunav",
+            "Raj",
+            "Volga",
+            "Dnjepre"
+          ],
+          "correct": 0
+        },
+        {
+          "id": "q2",
+          "text": "Koja je najveća država u svijetu po površini?",
+          "options": [
+            "Kanada",
+            "Rusija",
+            "SAD",
+            "Australija"
+          ],
           "correct": 1
         },
         {
           "id": "q3",
-          "text": "Koja je najduža rijeka na svijetu?",
-          "options": ["Amazon", "Nil", "Jangce", "Mississippi"],
+          "text": "Koji je najniži kontinent?",
+          "options": [
+            "Antarktika",
+            "Australija",
+            "Evraija",
+            "Južna Amerika"
+          ],
           "correct": 1
         }
-      ]
+      ],
+      "createdAt": "2024-01-03T12:00:00Z",
+      "createdBy": "admin-001"
     }
   ],
   "results": [
     {
-      "id": "1",
-      "userId": "2",
-      "quizId": "1",
-      "score": 4,
-      "total": 5,
-      "percentage": 80,
-      "completedAt": "2024-01-10T12:00:00.000Z"
+      "id": "result-001",
+      "userId": "admin-001",
+      "quizId": "quiz-001",
+      "score": 3,
+      "total": 3,
+      "percentage": 100,
+      "completedAt": "2024-01-15T14:30:00Z"
+    },
+    {
+      "id": "result-002",
+      "userId": "user-001",
+      "quizId": "quiz-001",
+      "score": 2,
+      "total": 3,
+      "percentage": 67,
+      "completedAt": "2024-01-15T14:45:00Z"
+    },
+    {
+      "id": "result-003",
+      "userId": "user-002",
+      "quizId": "quiz-001",
+      "score": 3,
+      "total": 3,
+      "percentage": 100,
+      "completedAt": "2024-01-15T15:00:00Z"
+    },
+    {
+      "id": "result-004",
+      "userId": "admin-001",
+      "quizId": "quiz-002",
+      "score": 2,
+      "total": 2,
+      "percentage": 100,
+      "completedAt": "2024-01-15T15:15:00Z"
+    },
+    {
+      "id": "result-005",
+      "userId": "user-001",
+      "quizId": "quiz-002",
+      "score": 1,
+      "total": 2,
+      "percentage": 50,
+      "completedAt": "2024-01-15T15:30:00Z"
+    },
+    {
+      "id": "result-006",
+      "userId": "user-002",
+      "quizId": "quiz-003",
+      "score": 3,
+      "total": 3,
+      "percentage": 100,
+      "completedAt": "2024-01-15T15:45:00Z"
+    },
+    {
+      "id": "result-007",
+      "userId": "user-001",
+      "quizId": "quiz-003",
+      "score": 2,
+      "total": 3,
+      "percentage": 67,
+      "completedAt": "2024-01-15T16:00:00Z"
+    },
+    {
+      "id": "result-008",
+      "userId": "admin-001",
+      "quizId": "quiz-003",
+      "score": 3,
+      "total": 3,
+      "percentage": 100,
+      "completedAt": "2024-01-15T16:15:00Z"
     }
   ],
-  "contacts": []
+  "contacts": [
+    {
+      "id": "contact-001",
+      "name": "Petar",
+      "email": "petar@example.com",
+      "subject": "Pitanje o kvizovima",
+      "message": "Mogu li dodati svoje kvizove? Jako mi se sviđa ova platforma!",
+      "createdAt": "2024-01-14T10:00:00Z"
+    },
+    {
+      "id": "contact-002",
+      "name": "Marija",
+      "email": "marija@example.com",
+      "subject": "Bug report",
+      "message": "Pronašla sam problem sa login formom. Lozinka sa specijalnim karakterima ne radi.",
+      "createdAt": "2024-01-13T09:30:00Z"
+    },
+    {
+      "id": "contact-003",
+      "name": "Ivan",
+      "email": "ivan@example.com",
+      "subject": "Sugestija za novu feature",
+      "message": "Bilo bi lijepo da ima mogućnost share rezultata na društvenim mrežama.",
+      "createdAt": "2024-01-12T15:20:00Z"
+    }
+  ]
 }
